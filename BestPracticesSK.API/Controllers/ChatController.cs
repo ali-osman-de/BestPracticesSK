@@ -14,9 +14,16 @@ namespace BestPracticesSK.API.Controllers
         }
 
         [HttpPost("message")]
-        public async Task<string> PostMessage(string userMessage)
+        public async Task<string> message(string userMessage)
         {
             var response = await _chatService.GetChatResponseAsync(userMessage);
+            return response;
+        }
+
+        [HttpPost("messageWithHistory")]
+        public async Task<string> messageWithHistory(string userMessage)
+        {
+            var response = await _chatService.GetChatResponseWithHistoryAsync(userMessage);
             return response;
         }
     }

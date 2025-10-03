@@ -2,4 +2,6 @@
 public interface IChatService
 {
     Task<string> GetChatResponseAsync(string userMessage);
+
+    Task<string> GetChatResponseWithHistoryAsync(string userMessage);
 }
