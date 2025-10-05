@@ -26,5 +26,12 @@ namespace BestPracticesSK.API.Controllers
             var response = await _chatService.GetChatResponseWithHistoryAsync(userMessage);
             return response;
         }
+
+        [HttpPost("messageStreamingWithHistory")]
+        public async Task<string> messageStreamingWithHistory(string userMessage)
+        {
+            var response = await _chatService.GetChatStreamingResponseAsync(userMessage);
+            return response;
+        }
     }
 }

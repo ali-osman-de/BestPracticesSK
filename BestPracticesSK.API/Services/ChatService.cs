@@ -1,16 +1,19 @@
-﻿using BestPracticesSK.API.Interfaces.Services;
+﻿using Azure;
+using BestPracticesSK.API.Interfaces.Services;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using System.Text;
 
 namespace BestPracticesSK.API.Services;
 public class ChatService : IChatService
 {
-    private readonly IChatCompletionService _chatCompletionService;
     private readonly Kernel _kernel;
-    public ChatService(IChatCompletionService chatCompletionService, Kernel kernel)
+    private readonly IChatCompletionService _chatCompletionService;
+
+    public ChatService(Kernel kernel)
     {
-        _chatCompletionService = chatCompletionService;
         _kernel = kernel;
+        _chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
     }
 
     public async Task<string> GetChatResponseAsync(string userMessage)
@@ -22,20 +25,58 @@ public class ChatService : IChatService
     public async Task<string> GetChatResponseWithHistoryAsync(string userMessage)
     {
         var history = new ChatHistory();
-        history.AddUserMessage("saat 12 uçağı Kayseri istanbul uçağı");
+        history.AddSystemMessage(@"
+        Sen bir akıllı hava durumu asistanısın.
+        Kullanıcının belirttiği şehir için 'get_weather' fonksiyonunu KESİNLİKLE çağır.
+        Kendi tahminini yapma, sadece fonksiyon sonucunu kullan.
+        ");
         history.AddUserMessage(userMessage);
 
-        var settings = new PromptExecutionSettings { 
-            ExtensionData = new Dictionary<string, object> 
-            { 
-                { "temperature", 0.7 }, 
+        var settings = new PromptExecutionSettings
+        {
+            ExtensionData = new Dictionary<string, object>
+            {
+                { "temperature", 0.7 },
                 { "max_tokens", 150 }
-            }
+            },
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() // plugin için zorunlu!
         };
 
         var response = await _chatCompletionService.GetChatMessageContentAsync(history, settings, _kernel);
 
-        return response.ToString();
+        return response.Content;
 
+    }
+
+    public async Task<string> GetChatStreamingResponseAsync(string userMessage)
+    {
+        var history = new ChatHistory();
+        history.AddSystemMessage(@"
+        Sen bir akıllı hava durumu asistanısın.
+        Kullanıcının belirttiği şehir için 'get_weather' fonksiyonunu KESİNLİKLE çağır.
+        Kendi tahminini yapma, sadece fonksiyon sonucunu kullan.
+        ");
+        history.AddUserMessage(userMessage);
+
+        var settings = new PromptExecutionSettings
+        {
+            ExtensionData = new Dictionary<string, object>
+            {
+                { "temperature", 0.7 },
+                { "max_tokens", 150 }
+            },
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+        };
+
+        var responseStream = _chatCompletionService.GetStreamingChatMessageContentsAsync(history, settings, _kernel);
+        
+        var result = new StringBuilder();
+
+        await foreach (var message in responseStream)
+        {
+            result.Append(message.Content);
+        }
+
+        return result.ToString();
     }
 }
